@@ -138,7 +138,7 @@ def get_meetings():
 
 def get_todos():
 
-    return [l for l in get_last_day() if l.startswith(('['))]
+    return [l for l in get_last_day() if l.strip().startswith(('['))]
 
 def write_todo(todo):
     now = datetime.datetime.now()
