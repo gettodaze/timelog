@@ -6,14 +6,14 @@ import json
 import typing as tp
 from dataclasses import dataclass, field, asdict
 import dataclasses
+from functools import partial
+from bisect import insort_right
 
-# utils ------------------------------------------------
+# json utils ------------------------------------------------
 class TaskJSONEncoder(json.JSONEncoder):
     def default(self, o): # pylint: disable=E0202
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
         return super().default(o)
 
 class TaskJSONDecoder(json.JSONDecoder):
@@ -23,23 +23,20 @@ class TaskJSONDecoder(json.JSONDecoder):
                              *args, **kargs)
     
     def dict_to_object(self, d): 
-        d['timestamp'] = datetime.datetime.fromisoformat(d['timestamp'])
-        d['finished'] = d['finished'] and datetime.datetime.fromisoformat(d['finished'])
         return Task(**d)
 
 JSON_PATH = Path('/home/mccloskey/Development/john/timelog/hourly_test.json')
 
-def load_todos():
-    with JSON_PATH.open() as f:
-        task_list = json.load(f, cls=TaskJSONDecoder)
-    return task_list
+# misc utils --------------------------------------
 
-def write_todos(task_list):
-    with JSON_PATH.open('w+') as f:
-        json.dump(task_list, f, cls=TaskJSONEncoder)
+def timestamp_to_format(timestamp, format):
+    return datetime.datetime.fromtimestamp(timestamp).strftime(format)
 
-def datetime_to_HM(dt):
-    return dt.strftime('%H:%M')
+timestamp_to_HM = partial(timestamp_to_format, format='%H:%M')
+
+get_cur_timestamp = datetime.datetime.now().timestamp
+
+n_to_chr = lambda n: chr(n+97)
         
 
 # structs ----------------------------------------------
@@ -47,42 +44,65 @@ def datetime_to_HM(dt):
 @dataclass(order=True)
 class Task:
     text: tp.List[str] = field(compare=False)
-    priority: int = 0
-    timestamp: datetime.datetime = field(default_factory=datetime.datetime.now().isoformat)
+    inacitve: bool = True
+    priority: int = 0 # negative is high priority, positive is low priority
+    timestamp: datetime.datetime = field(default_factory=get_cur_timestamp)
     subtasks: tp.List['Task'] = field(default_factory=list, compare=False)
     finished: tp.Optional[datetime.datetime] = field(default=None, compare=False)
 
-    @classmethod
-    def from_text_str(cls, text):
-        return cls(text.split('\n'))
 
     @classmethod
-    def to_json_dict(cls, task):
-        update = {
-            'subtasks': [Task.to_json_dict(subtask) for subtask in task.subtasks],
-            'timestamp': str(task.timestamp),
-            'finished': str(task.finished) if task.finished else task.finished
-        }
-        return {**asdict(task), **update}
+    def from_text_str(cls, text, **kwargs):
+        return cls(text.split('\n'), **kwargs)
+
+    def __post_init__(self):
+        self.subtasks.sort()
 
     def finish(self, note=None):
-        self.finished = datetime.datetime.now()
+        self.finished = get_cur_timestamp()
+        self.inacitve = True
         if note:
             self.text.append(note)
 
     def add_subtask(self, subtask):
-        self.subtasks.append(subtask)
+        insort_right(self.subtasks, subtask)
 
-    def __str__(self, prefix=''):
-        checkbox = f'[{datetime_to_HM(self.finished)}]' if self.finished else '[ ]'
+
+    def __str__(self):
+        inactive = ' ' if self.inacitve else '*'
+        checkbox = f'[{timestamp_to_HM(self.finished)}]' if self.finished else '[ ]'
         text = '\n'.join(self.text)
-        return f'{prefix} {checkbox} - {text}' + ''.join([f'\n  {prefix}{strsubtask}' for subtask in sorted(self.subtasks)])
+        return f'{inactive}{checkbox} - {text}' + ''.join([f'\n  {subtask}' for subtask in self.subtasks])
+
+class TaskList(list):
+
+    @classmethod 
+    def from_json(cls, path=JSON_PATH):
+        with path.open() as f:
+            return cls(json.load(f, cls=TaskJSONDecoder))
+
+    def to_json(self, path=JSON_PATH):
+        with path.open('w+') as f:
+            json.dump(self, f, cls=TaskJSONEncoder)
+
+    def print(self):
+        print(*self, sep='\n')
+
+    def insert_task(self, task_str_or_multistr, **kwargs):
+        if isinstance(task_str_or_multistr, Task):
+            task = task_str_or_multistr
+        elif isinstance(task_str_or_multistr, str):
+            task = Task.from_text_str(task_str_or_multistr, **kwargs)
+        elif isinstance(task_str_or_multistr, list):
+            task = Task(task_str_or_multistr, **kwargs)
+        insort_right(self, task)
+
 
 
 log_path = '/home/mccloskey/Desktop/hourly_out.txt'
 TODOS_PATH = Path('/home/mccloskey/Desktop/todos.json')
 accrued_logs = []
-# todos = [Task.from_json_dict(d) for d in json.loads(TODOS_PATH.read_text())]
+todos = TaskList.from_json()
 # breakpoint()
 
 def replace_line(old, new):
