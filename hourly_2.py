@@ -17,7 +17,7 @@ class TodoREPL:
     # CONFIGURATION ############################################################
 
     LOG_PATH = Path('/tmp/timelog.txt')
-    TODO_PATH = Path('/tmp/todo.txt')
+    TODO_PATH = Path('/tmp/timelog_todo.db')
     CMD_HISTORY_PATH = Path('/tmp/timelog.history')
 
     # HELPERS ##################################################################
@@ -125,7 +125,9 @@ class TodoREPL:
             if not expected_path.exists():
                 expected_path.touch()
             print(expected_path)
-            
+
+        
+        
         readline.read_history_file(str(cls.CMD_HISTORY_PATH))
         readline.set_auto_history(True)
         readline.set_history_length(1000)
