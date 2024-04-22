@@ -82,6 +82,12 @@ class TodoREPL:
         cls._write_log(inp)
         return True
     
+    @classmethod
+    def CMD_CLEAR(cls) -> bool:
+        _, lines = os.get_terminal_size()
+        print('\n'*lines)
+        return True
+    
     
     # Aliases
     CMD_Q = CMD_QUIT
