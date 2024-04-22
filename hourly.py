@@ -79,7 +79,7 @@ class Task:
         return f'{prefix} {checkbox} - {text}' + ''.join([f'\n  {prefix}{strsubtask}' for subtask in sorted(self.subtasks)])
 
 
-log_path = '/home/mccloskey/Desktop/hourly_out.txt'
+log_path = '/home/mccloskey/vault/logs/hourly_out.md'
 TODOS_PATH = Path('/home/mccloskey/Desktop/todos.json')
 accrued_logs = []
 # todos = [Task.from_json_dict(d) for d in json.loads(TODOS_PATH.read_text())]
@@ -115,11 +115,11 @@ def print_last_day():
 
 def open_logs(only_hourly_out=False):
     if only_hourly_out:
-        files = ['hourly_out.txt']
+        files = ['hourly_out.md']
     else:
-        files = [r'Notes',r'Daily\ Log','hourly_out.txt']
+        files = ['notes.md','daily_log.md','hourly_out.md']
     for fname in files:
-        os.system(f'xdg-open /home/mccloskey/Desktop/{fname}')
+        os.system(f'xdg-open /home/mccloskey/vault/logs/{fname}')
 
 def format_meeting(description):
         return f'''--- {datetime.datetime.now().strftime("%m/%d/%Y (%A)")} {description} ---
