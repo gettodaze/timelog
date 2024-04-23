@@ -88,7 +88,8 @@ class TodoDB(AbstractContextManager):
             self.session.rollback()
         self.session.close()
 
-    def get_all_tasks(self) -> list[Task]:
+    @property
+    def tasks(self):
         return self.session.query(Task).order_by(Task.priority).all()
 
     def add_task(self, description: str, parent_id=None) -> Task:
@@ -96,18 +97,24 @@ class TodoDB(AbstractContextManager):
         self.session.add(task)
         return task
     
-    def mark_done(self, task_id: int) -> None:
+    def mark_done(self, task_id: int) -> Task:
         task = self.session.query(Task).get(task_id)
         task.done = True
+        return task
 
-    def prioritize(self, task_id: int) -> None:
+    def prioritize(self, task_id: int) -> Task:
         task = self.session.query(Task).get(task_id)
         task.prioritize()
+        return task
+    
+    def __iter__(self):
+        return self.tasks.__iter__()
+    
+    def __getitem__(self, idx):
+        return self.tasks[idx]
 
     def __str__(self):
-        return Task.format_tree(*self.get_all_tasks())
-
-with TodoDB(Path('/tmp/timelog_todo_3.db')) as instance:
-    # instance.add_task('Task 1')
-    tasks = instance.get_all_tasks()
-    from IPython import embed; embed()  # fmt: skip
+        return Task.format_tree(*self.tasks)
+    
+    def commit(self):
+        self.session.commit()
