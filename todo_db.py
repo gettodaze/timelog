@@ -32,6 +32,7 @@ class Task(Base):
         return f"Task({self.id}, {self.description!r}, parent_id={self.parent_id!r})"
 
     def format_tree(*tasks: Task) -> str:
+        print(tasks)
         seen = set()
 
         def _format_tree(task: Task, indent: int) -> str:
@@ -99,7 +100,7 @@ class TodoDB(AbstractContextManager):
 
     @property
     def tasks(self):
-        return self.session.query(Task).order_by(Task.done, Task.priority).all()
+        return self.session.query(Task).order_by(Task.done, Task.priority.desc()).all()
 
     def add_task(self, description: str, parent_id=None) -> Task:
         task = Task(description=description, parent_id=parent_id)
@@ -119,11 +120,12 @@ class TodoDB(AbstractContextManager):
     def show_task(self, idx) -> str:
         return self[idx].format_tree() if idx else str(self)
 
-    def __iter__(self):
-        return self.tasks.__iter__()
+    def delete_task(self, idx):
+        task = self.session.query(Task).get(idx)
+        self.session.delete(task)
 
     def __getitem__(self, idx):
-        return {task.id: task for task in self.tasks}[idx]
+        return self.session.query(Task).get(idx)
 
     def __str__(self):
         return Task.format_tree(*self.tasks)

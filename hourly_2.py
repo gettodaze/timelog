@@ -102,14 +102,23 @@ class LogREPL:
                 cmd = cmd.upper()
                 id_ = int(id_) if id_ else None
                 if cmd == "P":
-                    task = todo_list.prioritize(id_)
-                    cls._write_log(f"Priotized {task.description}")
+                    task = todo_list[id_]
+                    old = task.priority
+                    if desc.strip().isnumeric():
+                        new = int(desc.strip())
+                        todo_list[id_].priority = new
+                    else:
+                        task.priority += 1
+                    cls._write_log(
+                        f"Priotized {task.description} from {old} to {task.priority}"
+                    )
                 elif cmd == "F":
                     task = todo_list.mark_done(id_)
                     cls._write_log(f"Finished {task.description}")
                 elif cmd == "A":
-                    task = todo_list.add_task(desc, parent_id=id_)
-                    cls._write_log(f"Added {task.description}")
+                    for subd in desc.split(";"):
+                        task = todo_list.add_task(subd, parent_id=id_)
+                    cls._write_log(f"Added {desc}")
                 elif cmd == "S":
                     print(todo_list.show_task(id_))
                 elif cmd in ["C", "CLEAR"]:
@@ -125,6 +134,17 @@ class LogREPL:
                     cls._write_log(
                         f"Added issue number {task.issue_number} to {task.description}"
                     )
+                elif cmd == "D":
+                    tasks = []
+                    if id_:
+                        tasks.append(todo_list[id_])
+                    if desc.strip():
+                        tasks.extend(todo_list[int(i.strip())] for i in desc.split(";"))
+                    for task in tasks:
+                        check = input(f"Delete {task.id} {task.description}? (y/n) ")
+                        if check.lower() == "y":
+                            todo_list.delete_task(task.id)
+                            cls._write_log(f"Deleted {task.description}")
 
                 else:
                     task = todo_list.add_task(inp)
