@@ -1,6 +1,6 @@
 from __future__ import annotations
 from contextlib import contextmanager
-import itertools
+import sys
 import os
 from pathlib import Path
 import re
@@ -101,7 +101,7 @@ class LogREPL:
                 if cmd == "P":
                     task = todo_list.prioritize(id_)
                     cls._write_log(f"Priotized {task.description}")
-                elif cmd == "D":
+                elif cmd == "F":
                     task = todo_list.mark_done(id_)
                     cls._write_log(f"Finished {task.description}")
                 elif cmd == "A":
@@ -208,6 +208,9 @@ class LogREPL:
 
     @classmethod
     def _get_cmd_and_args(cls, inp: str) -> tuple[tp.Callable[..., bool], list[str]]:
+        if not inp:
+            return cls.CMD_QUIT, []
+
         cmd, *args = inp.split(" ", maxsplit=1)
         cmd = cmd.upper()
         for func in cls._get_cmds():
@@ -246,7 +249,7 @@ class LogREPL:
             readline.write_history_file(str(cls.HISTORY_PATH))
 
     @classmethod
-    def main(cls):
+    def main_loop(cls):
         with cls._state_context():
             # main loop
             cont = True
@@ -256,6 +259,18 @@ class LogREPL:
                 cont = cmd(*args)
                 if cont is None:
                     raise ValueError(f"Command {cmd} returned None")
+
+    @classmethod
+    def main_once(cls, inp):
+        cmd, args = cls._get_cmd_and_args(inp)
+        cmd(*args)
+
+    @classmethod
+    def main(cls):
+        if len(sys.argv) > 1:
+            cls.main_once(" ".join(sys.argv[1:]))
+        else:
+            cls.main_loop()
 
 
 if __name__ == "__main__":
