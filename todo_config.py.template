@@ -1,0 +1,4 @@
+import os
+
+def open_task(issue_number: int):
+    return

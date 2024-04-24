@@ -24,6 +24,7 @@ class Task(Base):
     parent_id = Column(Integer, ForeignKey("tasks.id"))
     done = Column(Boolean, default=False)
     priority = Column(Integer, default=0)
+    issue_number = Column(Integer, nullable=True)
 
     subtasks = relationship("Task", order_by="asc(Task.done), asc(Task.priority)")
 

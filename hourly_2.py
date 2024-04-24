@@ -10,6 +10,7 @@ import datetime
 import readline
 
 from todo_db import TodoDB
+import todo_config
 
 now = datetime.datetime.now
 
@@ -91,7 +92,9 @@ class LogREPL:
                 print(todo_list)
 
             while True:
-                inp = input("[P]rioritize, [F]inish, [A]dd, [S]how, [C]lear? ")
+                inp = input(
+                    "[P]rioritize, [F]inish, [A]dd, [S]how, [C]lear, [O]pen, [I]ssue? "
+                )
                 if not inp:
                     return True
                 # see if command is one of the defaults -- letter + optional number
@@ -111,6 +114,18 @@ class LogREPL:
                     print(todo_list.show_task(id_))
                 elif cmd in ["C", "CLEAR"]:
                     cls.CMD_CLEAR()
+                elif cmd in ["O"]:
+                    todo_config.open_task(id_ and todo_list[id_].issue_number)
+                elif cmd == "I":
+                    task = todo_list[id_]
+                    if not desc.strip().isnumeric():
+                        print(f"Invalid issue number: {desc}")
+                        continue
+                    task.issue_number = int(desc.strip())
+                    cls._write_log(
+                        f"Added issue number {task.issue_number} to {task.description}"
+                    )
+
                 else:
                     task = todo_list.add_task(inp)
                     cls._write_log(f"Added {task.description}")
